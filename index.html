@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cash Flow Minimizer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #4CAF50;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .transaction {
+            margin-bottom: 10px;
+        }
+        button {
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #results {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Cash Flow Minimizer</h1>
+    <div class="container">
+        <label for="num-people">Number of Friends:</label>
+        <input type="number" id="num-people" min="2" placeholder="Enter number of friends">
+        <button onclick="generateTransactionForm()">Generate Form</button>
+        
+        <div id="transactions"></div>
+        <button id="submit-button" style="display:none;" onclick="submitData()">Submit</button>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        function generateTransactionForm() {
+            const numPeople = document.getElementById("num-people").value;
+            const transactionsDiv = document.getElementById("transactions");
+
+            if (numPeople < 2) {
+                alert("Enter at least 2 people.");
+                return;
+            }
+
+            transactionsDiv.innerHTML = ""; // Clear previous content
+            for (let i = 0; i < numPeople; i++) {
+                const transaction = document.createElement("div");
+                transaction.classList.add("transaction");
+                transaction.innerHTML = `
+                    <label>Transaction ${i + 1}: </label>
+                    <input type="number" placeholder="Payer ID (0-${numPeople - 1})" id="payer-${i}" min="0" max="${numPeople - 1}">
+                    <input type="number" placeholder="Payee ID (0-${numPeople - 1})" id="payee-${i}" min="0" max="${numPeople - 1}">
+                    <input type="number" placeholder="Amount" id="amount-${i}" min="1">
+                `;
+                transactionsDiv.appendChild(transaction);
+            }
+
+            const submitButton = document.getElementById("submit-button");
+            submitButton.style.display = "block";
+        }
+
+        function submitData() {
+            const numPeople = parseInt(document.getElementById("num-people").value);
+            const transactions = [];
+
+            for (let i = 0; i < numPeople; i++) {
+                const payer = parseInt(document.getElementById(`payer-${i}`).value);
+                const payee = parseInt(document.getElementById(`payee-${i}`).value);
+                const amount = parseInt(document.getElementById(`amount-${i}`).value);
+
+                if (!isNaN(payer) && !isNaN(payee) && !isNaN(amount)) {
+                    transactions.push([payer, payee, amount]);
+                }
+            }
+
+            fetch("/minimize", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ num_people: numPeople, transactions }),
+            })
+            .then((response) => response.json())
+            .then((data) => {
+                const resultsDiv = document.getElementById("results");
+                resultsDiv.innerHTML = `
+                    <h2>Optimized Transactions</h2>
+                    <p>${data.transactions.join("<br>")}</p>
+                    <h3>Net Balances:</h3>
+                    <p>${data.net_balance.join(", ")}</p>
+                `;
+            })
+            .catch((error) => console.error("Error:", error));
+        }
+    </script>
+</body>
+</html>
